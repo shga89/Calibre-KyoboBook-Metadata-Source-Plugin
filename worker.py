@@ -43,12 +43,12 @@ class Worker(Thread): # Get details
                 'dut': ('Dutch','DUT',),
                 'deu': ('German', 'Deutsch','GER'),
                 'spa': ('Spanish', 'Espa\xf1ol', 'Espaniol','SPA'),
-                'jpn': ('Japanese', u'日本語','JAP'),
+                'jpn': ('Japanese', '日本語','JAP'),
                 'por': ('Portuguese', 'Portugues','POR'),
-                'kor': ('Korean', u'한국어','KOR'),
+                'kor': ('Korean', '한국어','KOR'),
                 }
         self.lang_map = {}
-        for code, names in lm.iteritems():
+        for code, names in lm.items():
             for name in names:
                 self.lang_map[name] = code
 
@@ -212,12 +212,15 @@ class Worker(Thread): # Get details
         return re.search('[\?|\&]barcode=([^\&]+)', url).group(1)
 
     def parse_title_series(self, root):
-        title_node = root.xpath('//div[@class="box_detail_point"]/h1[@class="title"]')
+        title_node = root.xpath('//div[@class="box_detail_point"]/h1[@class="title"]/strong')
         if not title_node:
             return (None, None, None)
+
         self._removeTags(title_node[0],["script","style"])
         
         title_text = title_node[0].text_content().strip() 
+        title_text = title_text.replace("\t","")
+        title_text = title_text.replace("\r\n","")
         
         series_node = root.xpath('//div[@class="box_detail_point"]/div[@class="info"]')
         if not series_node:
@@ -247,8 +250,10 @@ class Worker(Thread): # Get details
 
 
     def parse_authors(self, root):
+        #self.log.warning(root)
+    
         # Build a dict of authors with their contribution if any in values
-        authors_elements = root.xpath("//span[@title='%s']/preceding-sibling::node()" % u'출판사')
+        authors_elements = root.xpath("//span[@title='%s']/preceding-sibling::node()" % '출판사')
 
         if not authors_elements:
             return
@@ -280,8 +285,7 @@ class Worker(Thread): # Get details
                 if el.strip():
                     contrib = el.strip()
         item = authors_type_map.items()
-        item.reverse()
-        authors_type_map = OrderedDict(item)
+        authors_type_map = OrderedDict(item, reverse=True)
 
         # User either requests all authors, or only the primary authors (latter is the default)
         # If only primary authors, only bring them in if:
@@ -291,11 +295,11 @@ class Worker(Thread): # Get details
         get_all_authors = cfg.plugin_prefs[cfg.STORE_NAME][cfg.KEY_GET_ALL_AUTHORS]
         authors = []
         valid_contrib = None
-        for a, contrib in authors_type_map.iteritems():
+        for a, contrib in authors_type_map.items():
             if get_all_authors:
                 authors.append(a)
             else:
-                if not contrib or contrib == u'지음' or contrib == u'저자':
+                if not contrib or contrib == '지음' or contrib == '저자':
                     authors.append(a)
                 elif len(authors) == 0:
                     authors.append(a)
@@ -316,7 +320,7 @@ class Worker(Thread): # Get details
                 return rating_value
 
     def parse_comments(self, root):
-        description_nodes = root.xpath("//*[preceding-sibling::comment()[. = ' *** s:%s *** '] and following-sibling::comment()[. = ' *** //e:%s *** ']]" % (u'책소개',u'책소개'))
+        description_nodes = root.xpath("//*[preceding-sibling::comment()[. = ' *** s:%s *** '] and following-sibling::comment()[. = ' *** //e:%s *** ']]" % ('책소개','책소개'))
         
         default_append_toc = cfg.DEFAULT_STORE_VALUES[cfg.KEY_APPEND_TOC]
         append_toc = cfg.plugin_prefs[cfg.STORE_NAME].get(cfg.KEY_APPEND_TOC, default_append_toc)
@@ -324,13 +328,13 @@ class Worker(Thread): # Get details
         comments = ''
         if description_nodes:
             for description_node in description_nodes:
-                comments += tostring(description_node, method='html', encoding=unicode).strip()
+                comments += tostring(description_node, method='html', encoding=str).strip()
             while comments.find('  ') >= 0:
                 comments = comments.replace('  ',' ')
             comments = sanitize_comments_html(comments)
             
         if append_toc:
-            toc_node = root.xpath('//div[@class="box_detail_content"]/h2[@class="title_detail_basic" and contains(text(),"%s")]/following-sibling::div' % u"목차")
+            toc_node = root.xpath('//div[@class="box_detail_content"]/h2[@class="title_detail_basic" and contains(text(),"%s")]/following-sibling::div' % "목차")
             if toc_node:
                 toc = tostring(toc_node[0], method='html')
                 toc = sanitize_comments_html(toc)
@@ -397,7 +401,7 @@ class Worker(Thread): # Get details
         #  <a class="np_af" href="/search/wsearchresult.aspx?PublisherSearch=%b4%d9%b9%ae@876&BranchType=1">다문</a> | 2009-09-20
         publisher = None
         pub_date = None
-        publisher_node = root.xpath("//span[@title='%s']" % u'출판사')
+        publisher_node = root.xpath("//span[@title='%s']" % '출판사')
         if publisher_node:
             # /search/SearchCommonMain.jsp?vPstrCategory=KOR&vPoutSearch=1&vPpubCD=04129&vPsKeywordInfo=실천문학사
             # /search/SearchEngbookMain.jsp?vPstrCategory=ENG&vPoutSearch=1&vPejkGB=BNT&vPpubNM=Prentice Hall&vPsKeywordInfo=Prentice Hall
@@ -512,7 +516,7 @@ class Worker(Thread): # Get details
         raw = "Korean"
         lang_node = root.xpath('//div[@class="book_info_basic2"]')
         if lang_node:
-            match = re.search("%s\s?:\s?([^\s]*)" % u'언어',lang_node[0].text_content(),re.I)
+            match = re.search("%s\s?:\s?([^\s]*)" % '언어',lang_node[0].text_content(),re.I)
             if match:
                 raw = match.group(1)
         ans = self.lang_map.get(raw, None)

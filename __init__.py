@@ -8,8 +8,8 @@ __copyright__ = '2014, YongSeok Choi <sseeookk@gmail.com> based on the Goodreads
 __docformat__ = 'restructuredtext en'
 
 import time, re
-from urllib import quote
-from Queue import Queue, Empty
+from urllib.parse import quote
+from queue import Queue, Empty
 from collections import OrderedDict
 
 from lxml.html import fromstring, tostring
@@ -75,7 +75,7 @@ class Kyobobook(Source):
             
             title_tokens = list(self.get_title_tokens(title, strip_joiners=False, strip_subtitle=True))
             # tokens += title_tokens
-            tokens += [quote(t.encode('euc-kr') if isinstance(t, unicode) else t) for t in title_tokens] # kyobobook by sseeookk
+            tokens += [quote(t.encode('euc-kr') if isinstance(t, str) else t) for t in title_tokens]
             
             # TODO: No tokent is returned for korean name.
             # 한글이름일 경우 token 이 반환 안된다.
@@ -292,8 +292,7 @@ class Kyobobook(Source):
                 log.info('Could not find title')
                 continue
             # Strip off any series information from the title
-            # log.info('\nFOUND TITLE:',title)  # console (calibre-debug.exe - 내장 Python 인터프리터, 한글이 안깨진다.)
-            log.info('\nFOUND TITLE:',title.encode('euc-kr')) # by sseeookk
+            log.info('\nFOUND TITLE:',title) # by sseeookk
             if '(' in title:
                 #log.info('Stripping off series(')
                 title = title.rpartition('(')[0].strip()
@@ -307,11 +306,9 @@ class Kyobobook(Source):
                     authors.append(author.strip())
             
             #log.info('Looking at tokens:',author)
-            #log.info('Considering search result: %s %s' % (title, authors)) 
-            log.info('Considering search result: ' , title.encode('euc-kr') ,",", '|'.join(authors).encode('euc-kr')) 
+            log.info('Considering search result: %s %s' % (title, authors)) 
             if not ismatch(title, authors):
-                #log.error('Rejecting as not close enough match: %s %s' % (title, authors))
-                log.error('Rejecting as not close enough match: ' , title.encode('euc-kr') ,",", '|'.join(authors).encode('euc-kr'))
+                log.error('Rejecting as not close enough match: %s %s' % (title, authors))
                 continue
 
             result_url = title_nodes[0].get('href')
